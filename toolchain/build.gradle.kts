@@ -63,13 +63,17 @@ dependencies {
 }
 
 tasks.compileJava {
-    // For picocli
-    options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
+    options.compilerArgs.addAll(listOf(
+        "-Werror",
+        // For picocli
+        "-Aproject=${project.group}/${project.name}",
+    ))
 }
 
 tasks.withType<JavaCompile> {
     options.errorprone {
-        disable("DefaultCharset")
+        disable("DefaultCharset", "CloseableProvides")
+
         error("NullAway")
         option("NullAway:AnnotatedPackages", "com.llewvallis.equator")
     }
