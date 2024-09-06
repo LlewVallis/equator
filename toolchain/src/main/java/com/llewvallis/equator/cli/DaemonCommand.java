@@ -1,5 +1,6 @@
 package com.llewvallis.equator.cli;
 
+import com.llewvallis.equator.Main;
 import com.llewvallis.equator.MainModule;
 import com.llewvallis.equator.lockfile.LockfileManagerImpl;
 import java.io.IOException;
@@ -39,7 +40,7 @@ public class DaemonCommand extends CommandBase {
         var javaCommand = ProcessHandle.current().info().command().orElse("java");
         var classPath = ManagementFactory.getRuntimeMXBean().getClassPath();
         var mainClass = MainModule.class.getName();
-        var args = new MainModule.Args(projectDirectory.get()).serialize();
+        var args = new Main.Args(projectDirectory.get()).serialize();
 
         var process =
                 new ProcessBuilder(javaCommand, "-cp", classPath, mainClass, args)

@@ -1,6 +1,7 @@
 package com.llewvallis.equator.server;
 
-import com.google.inject.Inject;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.io.Closer;
 import com.llewvallis.equator.MainModule;
 import com.llewvallis.equator.lockfile.LockfileManager;
 import java.io.Closeable;
@@ -16,13 +17,17 @@ public class ServerRunner implements Closeable {
 
     private final LockfileManager lockfileManager;
     private final PrintStream stdout;
+    private final ConnectionHandler connectionHandler;
     private final ServerSocket serverSocket;
 
-    @Inject
-    ServerRunner(LockfileManager lockfileManager, @MainModule.Stdout PrintStream stdout)
+    public ServerRunner(
+            LockfileManager lockfileManager,
+            @MainModule.Stdout PrintStream stdout,
+            ConnectionHandler connectionHandler)
             throws IOException {
         this.lockfileManager = lockfileManager;
         this.stdout = stdout;
+        this.connectionHandler = connectionHandler;
         serverSocket = new ServerSocket(0);
     }
 
@@ -30,8 +35,10 @@ public class ServerRunner implements Closeable {
         writeLockfile();
         writePortToStdout();
 
-        var socket = serverSocket.accept();
-        socket.close();
+        while (true) {
+            var socket = serverSocket.accept();
+            connectionHandler.handle(new ClientConnectionImpl(socket));
+        }
     }
 
     private void writeLockfile() {
@@ -52,8 +59,16 @@ public class ServerRunner implements Closeable {
         stdout.close();
     }
 
+    @VisibleForTesting
+    int getPort() {
+        return serverSocket.getLocalPort();
+    }
+
     @Override
     public void close() throws IOException {
-        serverSocket.close();
+        try (var closer = Closer.create()) {
+            closer.register(serverSocket);
+            closer.register(lockfileManager::clear);
+        }
     }
 }
