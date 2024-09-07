@@ -1,9 +1,9 @@
 package com.llewvallis.equator.lockfile;
 
 import static com.llewvallis.equator.Constants.EQUATOR_DIRECTORY;
-import static com.llewvallis.equator.Constants.JSON;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -14,6 +14,8 @@ import java.util.Arrays;
 import org.jspecify.annotations.Nullable;
 
 public class LockfileManagerImpl implements LockfileManager {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Path path;
 
@@ -38,7 +40,7 @@ public class LockfileManagerImpl implements LockfileManager {
                 }
 
                 channel.truncate(0);
-                JSON.writeValue(Channels.newOutputStream(channel), data);
+                MAPPER.writeValue(Channels.newOutputStream(channel), data);
             }
         } catch (IOException e) {
             throw new UncheckedIOException("Error initializing lockfile", e);
@@ -88,7 +90,7 @@ public class LockfileManagerImpl implements LockfileManager {
                 return null;
             }
 
-            return JSON.readValue(bytes, LockfileData.class);
+            return MAPPER.readValue(bytes, LockfileData.class);
         } catch (JsonProcessingException e) {
             return null;
         } finally {

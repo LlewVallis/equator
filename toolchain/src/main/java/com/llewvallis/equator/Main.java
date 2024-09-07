@@ -1,8 +1,7 @@
 package com.llewvallis.equator;
 
-import static com.llewvallis.equator.Constants.JSON;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.inject.Guice;
 import com.google.inject.Module;
@@ -17,6 +16,8 @@ import java.util.List;
 
 public class Main {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private static List<Module> modules(Args args, PrintStream stdout) {
         return List.of(new MainModule(args, stdout), new ServerModule());
     }
@@ -25,7 +26,7 @@ public class Main {
 
         public String serialize() {
             try {
-                var json = JSON.writeValueAsString(this);
+                var json = MAPPER.writeValueAsString(this);
                 return Base64.getUrlEncoder().encodeToString(json.getBytes());
             } catch (JsonProcessingException e) {
                 throw new UncheckedIOException(e);
@@ -35,7 +36,7 @@ public class Main {
         public static Args deserialize(String encoded) {
             try {
                 var json = Base64.getUrlDecoder().decode(encoded);
-                return JSON.readValue(json, Args.class);
+                return MAPPER.readValue(json, Args.class);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

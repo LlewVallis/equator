@@ -4,6 +4,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.llewvallis.equator.lockfile.LockfileManager;
 import com.llewvallis.equator.lockfile.LockfileManagerImpl;
+import com.llewvallis.equator.properties.PropertyOverrides;
 import jakarta.inject.Singleton;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -38,5 +39,11 @@ public class MainModule extends AbstractModule {
     @Singleton
     private LockfileManager lockfileManager(@ProjectDirectory Path projectDirectory) {
         return new LockfileManagerImpl(projectDirectory);
+    }
+
+    @Provides
+    @Singleton
+    private PropertyOverrides propertyOverrides() {
+        return new PropertyOverrides();
     }
 }
