@@ -4,6 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.io.Closer;
 import com.llewvallis.equator.MainModule;
 import com.llewvallis.equator.lockfile.LockfileManager;
+import com.llewvallis.equator.properties.PropertyOverrides;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -15,16 +16,19 @@ public class ServerRunner implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(ServerRunner.class);
 
+    private final PropertyOverrides overrides;
     private final LockfileManager lockfileManager;
     private final PrintStream stdout;
     private final ConnectionHandler connectionHandler;
     private final ServerSocket serverSocket;
 
     public ServerRunner(
+            PropertyOverrides overrides,
             LockfileManager lockfileManager,
             @MainModule.Stdout PrintStream stdout,
             ConnectionHandler connectionHandler)
             throws IOException {
+        this.overrides = overrides;
         this.lockfileManager = lockfileManager;
         this.stdout = stdout;
         this.connectionHandler = connectionHandler;
@@ -37,7 +41,16 @@ public class ServerRunner implements Closeable {
 
         while (true) {
             var socket = serverSocket.accept();
-            connectionHandler.handle(new ClientConnectionImpl(socket));
+
+            ClientConnection connection;
+            try {
+                connection = new ClientConnectionImpl(overrides, socket);
+            } catch (IOException e) {
+                LOG.warn("Error creating connection from socket", e);
+                continue;
+            }
+
+            connectionHandler.handle(connection);
         }
     }
 

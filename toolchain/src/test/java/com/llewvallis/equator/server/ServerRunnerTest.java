@@ -5,10 +5,10 @@ import static org.assertj.core.api.Assertions.*;
 import com.google.common.io.Closer;
 import com.llewvallis.equator.lockfile.FakeLockfileManager;
 import com.llewvallis.equator.lockfile.LockfileManager;
+import com.llewvallis.equator.properties.PropertyOverrides;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.UncheckedIOException;
 import java.net.Socket;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +18,7 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
 @Execution(ExecutionMode.CONCURRENT)
-@Timeout(value = 1)
+@Timeout(value = 1, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
 class ServerRunnerTest {
 
     private static class TestException extends RuntimeException {}
@@ -27,12 +27,7 @@ class ServerRunnerTest {
 
         @Override
         public void handle(ClientConnection connection) {
-            try {
-                connection.close();
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-
+            connection.close();
             throw new TestException();
         }
     }
@@ -49,8 +44,9 @@ class ServerRunnerTest {
         stdoutBytes = new ByteArrayOutputStream();
         var stdout = new PrintStream(stdoutBytes);
 
+        var overrides = new PropertyOverrides();
         var connectionHandler = new ThrowingConnectionHandler();
-        runner = new ServerRunner(lockfileManager, stdout, connectionHandler);
+        runner = new ServerRunner(overrides, lockfileManager, stdout, connectionHandler);
 
         var clientSocket = new Socket("localhost", runner.getPort());
 

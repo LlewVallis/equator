@@ -8,12 +8,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @Execution(ExecutionMode.CONCURRENT)
+@Timeout(value = 1, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
 class LockfileManagerImplIntegrationTest extends TempDirectoryIntegrationTestBase {
 
     // We are assuming there is no process with this PID
