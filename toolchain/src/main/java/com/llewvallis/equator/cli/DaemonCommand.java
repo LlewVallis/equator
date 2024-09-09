@@ -39,7 +39,7 @@ public class DaemonCommand extends CommandBase {
     private int startServer() throws IOException, ExitCliException {
         var javaCommand = ProcessHandle.current().info().command().orElse("java");
         var classPath = ManagementFactory.getRuntimeMXBean().getClassPath();
-        var mainClass = MainModule.class.getName();
+        var mainClass = Main.class.getName();
         var args = new Main.Args(projectDirectory.get()).serialize();
 
         var process =

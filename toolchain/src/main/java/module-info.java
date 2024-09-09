@@ -1,7 +1,7 @@
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
-module toolchain.main {
+module com.llewvallis.equator.toolchain {
     requires com.fasterxml.jackson.databind;
     requires com.google.common;
     requires com.google.guice;

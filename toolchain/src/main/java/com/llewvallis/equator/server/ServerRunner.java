@@ -39,6 +39,7 @@ public class ServerRunner implements Closeable {
         writeLockfile();
         writePortToStdout();
 
+        // TODO: Implement a timeout if nothing is happening
         while (true) {
             var socket = serverSocket.accept();
 
