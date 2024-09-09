@@ -10,5 +10,4 @@ module com.llewvallis.equator.toolchain {
     requires org.slf4j;
     requires org.jspecify;
     requires java.management;
-    requires jdk.net;
 }
