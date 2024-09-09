@@ -1,7 +1,6 @@
 package com.llewvallis.equator.cli;
 
 import com.llewvallis.equator.Main;
-import com.llewvallis.equator.MainModule;
 import com.llewvallis.equator.lockfile.LockfileManagerImpl;
 import java.io.IOException;
 import java.io.UncheckedIOException;

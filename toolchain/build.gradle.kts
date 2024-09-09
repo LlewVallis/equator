@@ -1,5 +1,4 @@
 import net.ltgt.gradle.errorprone.errorprone
-import okio.IOException
 
 plugins {
     application
@@ -85,91 +84,63 @@ tasks.test {
 }
 
 tasks.jar {
-    val dependencies = configurations.runtimeClasspath.get().map(::zipTree)
-    from(dependencies)
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
     manifest.attributes["Main-Class"] = application.mainClass.get()
 }
 
-tasks.register<PackageTask>("package") {
+val jrePath = layout.buildDirectory.dir("jre")
+val jreTask = tasks.register<Exec>("jre") {
+    outputs.dir(jrePath)
+
+    val javaHome = javaToolchains.launcherFor(java.toolchain).get().metadata.installationPath.asFile
+    val jlinkPath = javaHome.resolve("bin/jlink").path
+
+    val jdkModules = listOf("java.base", "java.management")
+
+    doFirst {
+        // jlink complains if the directory already exists
+        jrePath.get().asFile.deleteRecursively()
+    }
+
+    commandLine(
+        jlinkPath,
+        "--strip-debug", "--no-man-pages", "--no-header-files",
+        "--add-modules", jdkModules.joinToString(","),
+        "--output", jrePath.get().asFile.path,
+        "--launcher", "test=java.base/java.util.regex.PrintPattern"
+    )
+}
+
+val packageTask = tasks.register<Copy>("package") {
     group = "Distribution"
-    description = "Packages the application with its own JRE"
+    description = "Creates a distributable package, including a JRE"
+
+    val output = layout.buildDirectory.dir("package/equator")
+
+    doFirst {
+        output.get().asFile.deleteRecursively()
+    }
+
+    into(output)
 
     dependsOn(tasks.jar)
+    from(tasks.jar.get().archiveFile) {
+        into("jars")
+    }
+    rename("toolchain-(.+).jar", "equator.jar")
 
-    outputName = "equator"
-    javaHome = javaToolchains.launcherFor(java.toolchain).get().metadata.installationPath.asFile.path
-    mainJar = tasks.jar.get().archiveFile.get()
-    outputDir = layout.buildDirectory.get().dir("package")
+    from(file("src/main/package"))
+
+    dependsOn(configurations.runtimeClasspath)
+    from(configurations.runtimeClasspath.get()) {
+        into("jars")
+    }
+
+    dependsOn(jreTask)
+    from(jrePath) {
+        into("jre")
+    }
 }
 
 tasks.build {
-    dependsOn("package")
-}
-
-abstract class PackageTask : DefaultTask() {
-
-    @get:Input
-    lateinit var outputName: String
-
-    @get:Input
-    lateinit var javaHome: String
-
-    @get:InputFile
-    lateinit var mainJar: RegularFile
-
-    @get:OutputDirectory
-    lateinit var outputDir: Directory
-
-    @TaskAction
-    fun run() {
-        cleanOutputDirectory()
-        val commandLineArgs = buildCommandLineArgs()
-        runJPackage(commandLineArgs)
-    }
-
-    private fun cleanOutputDirectory() {
-        val existingDirectory = outputDir.asFile.resolve(outputName)
-        if (existingDirectory.exists()) {
-            existingDirectory.deleteRecursively()
-        }
-    }
-
-    private fun buildCommandLineArgs(): List<String> {
-        val jpackagePath = File(javaHome).resolve("bin/jpackage")
-        val commandLineArgs = mutableListOf(jpackagePath.path)
-
-        commandLineArgs.add("--name")
-        commandLineArgs.add(outputName)
-
-        commandLineArgs.add("--dest")
-        commandLineArgs.add(outputDir.asFile.path)
-
-        commandLineArgs.add("--type")
-        commandLineArgs.add("app-image")
-
-        commandLineArgs.add("--main-jar")
-        commandLineArgs.add(mainJar.asFile.path)
-
-        commandLineArgs.add("--input")
-        commandLineArgs.add(mainJar.asFile.parent)
-
-        return commandLineArgs
-    }
-
-    private fun runJPackage(commandLineArgs: List<String>) {
-        val process = ProcessBuilder(commandLineArgs)
-            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-            .redirectError(ProcessBuilder.Redirect.PIPE)
-            .start()
-
-        val stderr = process.errorReader().readText()
-        val exitCode = process.waitFor()
-
-        if (exitCode != 0) {
-            System.err.println(stderr)
-            throw IOException("jpackage command failed with code $exitCode")
-        }
-    }
+    dependsOn(packageTask)
 }
