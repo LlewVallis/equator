@@ -32,3 +32,6 @@ jobs:
       - name: Build
         working-directory: ./toolchain
         run: ./gradlew build
+      - name: Check distribution
+        working-directory: ./toolchain
+        run: ./build/package/equator/equator --help
